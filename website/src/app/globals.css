@@ -123,6 +123,18 @@ label { color: var(--gold-dim); font-weight: bold; @apply text-sm; text-transfor
 }
 .nav-link:hover { color: var(--gold); background: rgba(255,209,0,0.06); text-decoration: none; }
 
+/* Discord call-to-action block: a whole panel that acts as a link */
+.discord-block {
+  color: var(--gold-dim);
+  transition: border-color 0.05s, color 0.05s;
+}
+.discord-block:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+  text-decoration: none;
+}
+.discord-block:hover div { color: #fff !important; }
+
 /* Ornament divider */
 .divider {
   height: 1px;
