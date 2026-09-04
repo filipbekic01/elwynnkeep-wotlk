@@ -217,6 +217,7 @@ foreach(APPLICATION_NAME ${APPLICATIONS_BUILD_LIST})
 
   # Install config
   CopyApplicationConfig(${APP_PROJECT_NAME} ${APPLICATION_NAME})
+  CopyApplicationExtraConfigs(${APP_PROJECT_NAME} ${APPLICATION_NAME})
 
 # Copy config merger tool (only once, after all app targets, if enabled)
 

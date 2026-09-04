@@ -1,0 +1,48 @@
+###################################################################################################
+# ELWYNN KEEP CUSTOM SETTINGS
+#
+# This file is loaded right after worldserver.conf and is reloaded together with it.
+# It is looked up next to worldserver.conf: "worldserver.elwynnkeep.conf" is used when present,
+# otherwise this ".dist" file is used as-is. Keys defined here override worldserver.conf.
+#
+###################################################################################################
+
+###################################################################################################
+# RANDOM LEVEL LOOT
+#
+#    RandomLevelLoot.Enable
+#        Description: Every lootable creature kill (excluding critters, pets and totems, and
+#                     creatures without a loot template) adds one extra random item from the
+#                     whole item pool whose level matches the looter's level or is up to
+#                     RandomLevelLoot.LevelsBelow levels lower.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+RandomLevelLoot.Enable = 1
+
+#
+#    RandomLevelLoot.LevelsBelow
+#        Description: How many levels below the looter's level an item may be and still drop.
+#        Default:     5
+
+RandomLevelLoot.LevelsBelow = 5
+
+#
+#    RandomLevelLoot.LevelMode
+#        Description: Which item field is compared against the looter's level.
+#        Note:        Changing this value rebuilds the item pool on ".reload config".
+#        Default:     0 - (RequiredLevel when set, otherwise ItemLevel)
+#                     1 - (ItemLevel only)
+#                     2 - (RequiredLevel only, items without a required level never drop)
+
+RandomLevelLoot.LevelMode = 0
+
+#
+#    RandomLevelLoot.Chance
+#        Description: Chance in percent that the extra item is added to the loot.
+#        Default:     100
+
+RandomLevelLoot.Chance = 100
+
+#
+###################################################################################################

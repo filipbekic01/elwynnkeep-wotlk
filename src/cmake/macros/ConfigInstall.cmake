@@ -43,6 +43,38 @@ function(CopyApplicationConfig projectName appName)
   endif()
 endfunction()
 
+#
+# Installs every extra application config next to the main one, e.g. worldserver.custom.conf.dist
+# Use it like:
+# CopyApplicationExtraConfigs(${APP_PROJECT_NAME} ${APPLICATION_NAME})
+#
+
+function(CopyApplicationExtraConfigs projectName appName)
+  GetPathToApplication(${appName} SOURCE_APP_PATH)
+
+  file(GLOB EXTRA_CONFIG_LIST "${SOURCE_APP_PATH}/${appName}.*.conf.dist")
+
+  foreach(extraConfig ${EXTRA_CONFIG_LIST})
+    if(WIN32)
+      if("${CMAKE_MAKE_PROGRAM}" MATCHES "MSBuild")
+        add_custom_command(TARGET ${projectName}
+          POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy "${extraConfig}" "${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/configs")
+      elseif(MINGW)
+        add_custom_command(TARGET ${projectName}
+          POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy "${extraConfig}" "${CMAKE_BINARY_DIR}/bin/configs")
+      endif()
+    endif()
+
+    if(UNIX)
+      install(FILES "${extraConfig}" DESTINATION "${CONF_DIR}")
+    elseif(WIN32)
+      install(FILES "${extraConfig}" DESTINATION "${CMAKE_INSTALL_PREFIX}/configs")
+    endif()
+  endforeach()
+endfunction()
+
 function(CopyToolConfig projectName appName)
   GetPathToTool(${appName} SOURCE_APP_PATH)
 

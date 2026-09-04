@@ -53,6 +53,11 @@ public:
     bool LoadModulesConfigs(bool isReload = false, bool isNeedPrintInfo = true);
     void Configure(std::string const& initFileName, std::vector<std::string> args, std::string_view modulesConfigList = {}, ConfigPolicy policy = {});
 
+    /// Registers an extra application config file (e.g. "worldserver.custom.conf") that is loaded right after the main
+    /// config file and reloaded with it. It is looked up next to the main config file; when the ".conf" is missing the
+    /// ".conf.dist" is used instead, and when neither exists the file is skipped.
+    void AddExtraAppConfig(std::string const& fileName);
+
     static ConfigMgr* instance();
 
     bool Reload();
@@ -74,6 +79,7 @@ public:
 private:
     /// Method used only for loading main configuration files (authserver.conf and worldserver.conf)
     bool LoadInitial(std::string const& file, bool isReload = false);
+    bool LoadExtraAppConfigs(bool isReload = false);
     bool LoadAdditionalFile(std::string file, bool isOptional = false, bool isReload = false);
 
     template<class T>

@@ -23,6 +23,7 @@
 #include "Log.h"
 #include "ObjectMgr.h"
 #include "Player.h"
+#include "RandomLevelLootMgr.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
 #include "SpellInfo.h"
@@ -561,6 +562,10 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
     tab->Process(*this, store, lootMode, lootOwner, 0, true);          // Processing is done there, callback via Loot::AddItem()
 
     sScriptMgr->OnAfterLootTemplateProcess(this, tab, store, lootOwner, personal, noEmptyError, lootMode);
+
+    // Custom: one extra random item matching the looter's level on every regular creature kill
+    if (&store == &LootTemplates_Creature && lootSource)
+        sRandomLevelLootMgr->AddRandomItem(*this, lootSource->ToCreature(), lootOwner);
 
     // Setting access rights for group loot case
     Group* group = lootOwner->GetGroup();

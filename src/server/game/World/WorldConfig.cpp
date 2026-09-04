@@ -363,6 +363,12 @@ void WorldConfig::BuildConfigCache()
 
     SetConfigValue<bool>(CONFIG_CAIS_ENABLED, "CAIS.Enable", false);
 
+    // Custom: random level-matched loot
+    SetConfigValue<bool>(CONFIG_RANDOM_LEVEL_LOOT_ENABLE, "RandomLevelLoot.Enable", true);
+    SetConfigValue<uint32>(CONFIG_RANDOM_LEVEL_LOOT_LEVELS_BELOW, "RandomLevelLoot.LevelsBelow", 5);
+    SetConfigValue<uint32>(CONFIG_RANDOM_LEVEL_LOOT_LEVEL_MODE, "RandomLevelLoot.LevelMode", 0, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value <= 2; }, "0-2");
+    SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_CHANCE, "RandomLevelLoot.Chance", 100.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
+
     SetConfigValue<uint32>(CONFIG_EVENT_ANNOUNCE, "Event.Announce", 0);
 
     SetConfigValue<float>(CONFIG_CREATURE_LEASH_RADIUS, "CreatureLeashRadius", 30.0f);

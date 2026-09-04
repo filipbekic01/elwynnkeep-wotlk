@@ -74,6 +74,7 @@
 #include "PlayerDump.h"
 #include "PoolMgr.h"
 #include "RaceMgr.h"
+#include "RandomLevelLootMgr.h"
 #include "Realm.h"
 #include "ScriptMgr.h"
 #include "ServerMailMgr.h"
@@ -295,6 +296,10 @@ void World::LoadConfigSettings(bool reload)
     VMAP::VMapFactory::createOrGetVMapMgr()->setEnableLineOfSightCalc(enableLOS);
     VMAP::VMapFactory::createOrGetVMapMgr()->setEnableHeightCalc(enableHeight);
     LOG_INFO("server.loading", "WORLD: VMap support included. LineOfSight:{}, getHeight:{}, indoorCheck:{} PetLOS:{}", enableLOS, enableHeight, enableIndoor, enablePetLOS);
+
+    // Custom: the random level loot pool depends on RandomLevelLoot.* values, rebuild it on reload
+    if (reload)
+        sRandomLevelLootMgr->LoadItemPool();
 
     // call ScriptMgr if we're reloading the configuration
     sScriptMgr->OnAfterConfigLoad(reload);
@@ -529,6 +534,9 @@ void World::SetInitialWorldSettings()
 
     LOG_INFO("server.loading", "Loading Item Set Names...");                // must be after LoadItemPrototypes
     sObjectMgr->LoadItemSetNames();
+
+    LOG_INFO("server.loading", "Loading Random Level Loot Item Pool...");   // must be after LoadItemTemplates
+    sRandomLevelLootMgr->LoadItemPool();
 
     LOG_INFO("server.loading", "Loading Creature Model Based Info Data...");
     sObjectMgr->LoadCreatureModelInfo();

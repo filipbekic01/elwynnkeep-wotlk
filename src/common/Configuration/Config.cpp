@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <locale>
 #include <mutex>
@@ -34,6 +35,7 @@ namespace
 {
     std::string _filename;
     std::vector<std::string> _additonalFiles;
+    std::vector<std::string> _extraAppFiles;
     std::vector<std::string> _args;
     std::unordered_map<std::string /*name*/, std::string /*value*/> _configOptions;
     std::unordered_map<std::string /*name*/, std::string /*value*/> _envVarCache;
@@ -724,6 +726,7 @@ void ConfigMgr::Configure(std::string const& initFileName, std::vector<std::stri
     _policy = ApplyPolicyFromArgs(_policy, _args);
 
     _additonalFiles.clear();
+    _extraAppFiles.clear();
     _moduleConfigFiles.clear();
 
     // Add modules config if exist
@@ -737,12 +740,55 @@ void ConfigMgr::Configure(std::string const& initFileName, std::vector<std::stri
     }
 }
 
+void ConfigMgr::AddExtraAppConfig(std::string const& fileName)
+{
+    if (fileName.empty())
+        return;
+
+    if (std::find(_extraAppFiles.begin(), _extraAppFiles.end(), fileName) == _extraAppFiles.end())
+        _extraAppFiles.emplace_back(fileName);
+}
+
 bool ConfigMgr::LoadAppConfigs(bool isReload /*= false*/)
 {
     // #1 - Load init config file .conf
     if (!LoadInitial(_filename, isReload))
     {
         return false;
+    }
+
+    // #2 - Load extra app config files (.conf or .conf.dist) next to the init config file
+    return LoadExtraAppConfigs(isReload);
+}
+
+bool ConfigMgr::LoadExtraAppConfigs(bool isReload /*= false*/)
+{
+    if (_extraAppFiles.empty())
+        return true;
+
+    std::filesystem::path const configDir = std::filesystem::path(_filename).parent_path();
+
+    for (auto const& fileName : _extraAppFiles)
+    {
+        std::filesystem::path path = configDir / fileName;
+
+        if (!std::filesystem::exists(path))
+        {
+            std::filesystem::path const distPath = configDir / (fileName + ".dist");
+            if (!std::filesystem::exists(distPath))
+            {
+                LOG_INFO("server.loading", "> Config: Extra config file '{}' not found (also tried '{}'). Skip", path.generic_string(), distPath.generic_string());
+                continue;
+            }
+
+            path = distPath;
+        }
+
+        if (!LoadAdditionalFile(path.generic_string(), false, isReload))
+            return false;
+
+        if (!isReload)
+            LOG_INFO("server.loading", "> Config: Using extra config file '{}'", path.generic_string());
     }
 
     return true;

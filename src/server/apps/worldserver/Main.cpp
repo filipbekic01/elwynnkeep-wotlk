@@ -183,6 +183,9 @@ int main(int argc, char** argv)
     // Add file and args in config
     sConfigMgr->Configure(configFile.generic_string(), {argv, argv + argc}, CONFIG_FILE_LIST);
 
+    // Custom server settings live in their own file so worldserver.conf stays untouched
+    sConfigMgr->AddExtraAppConfig("worldserver.elwynnkeep.conf");
+
     if (!sConfigMgr->LoadAppConfigs())
         return 1;
 
