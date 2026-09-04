@@ -366,8 +366,13 @@ void WorldConfig::BuildConfigCache()
     // Custom: random level-matched loot
     SetConfigValue<bool>(CONFIG_RANDOM_LEVEL_LOOT_ENABLE, "RandomLevelLoot.Enable", true);
     SetConfigValue<uint32>(CONFIG_RANDOM_LEVEL_LOOT_LEVELS_BELOW, "RandomLevelLoot.LevelsBelow", 5);
-    SetConfigValue<uint32>(CONFIG_RANDOM_LEVEL_LOOT_LEVEL_MODE, "RandomLevelLoot.LevelMode", 0, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value <= 2; }, "0-2");
-    SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_CHANCE, "RandomLevelLoot.Chance", 100.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
+    SetConfigValue<uint32>(CONFIG_RANDOM_LEVEL_LOOT_MIN_QUALITY, "RandomLevelLoot.MinQuality", ITEM_QUALITY_POOR, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value <= ITEM_QUALITY_EPIC; }, "0-4");
+    SetConfigValue<uint32>(CONFIG_RANDOM_LEVEL_LOOT_MAX_ITEM_LEVEL, "RandomLevelLoot.MaxItemLevel", 232);
+    SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_CHANCE_COMMON, "RandomLevelLoot.Chance.Common", 25.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
+    SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_CHANCE_RARE, "RandomLevelLoot.Chance.Rare", 10.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
+    SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_CHANCE_EPIC, "RandomLevelLoot.Chance.Epic", 3.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
+    SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_POTION_CHANCE, "RandomLevelLoot.Potion.Chance", 25.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
+    SetConfigValue<uint32>(CONFIG_RANDOM_LEVEL_LOOT_POTION_LEVELS_BELOW, "RandomLevelLoot.Potion.LevelsBelow", 10);
 
     SetConfigValue<uint32>(CONFIG_EVENT_ANNOUNCE, "Event.Announce", 0);
 

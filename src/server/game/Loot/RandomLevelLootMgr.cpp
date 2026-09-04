@@ -17,14 +17,19 @@
 
 #include "RandomLevelLootMgr.h"
 #include "Creature.h"
+#include "Group.h"
 #include "ItemTemplate.h"
 #include "Log.h"
 #include "LootMgr.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "Random.h"
+#include "SharedDefines.h"
 #include "Timer.h"
+#include "Util.h"
 #include "World.h"
+#include <algorithm>
+#include <cctype>
 
 RandomLevelLootMgr* RandomLevelLootMgr::instance()
 {
@@ -32,27 +37,103 @@ RandomLevelLootMgr* RandomLevelLootMgr::instance()
     return &instance;
 }
 
-uint32 RandomLevelLootMgr::GetItemLevelForPool(ItemTemplate const& proto, LevelMode mode)
+RandomLevelLootMgr::Tier RandomLevelLootMgr::GetTierForQuality(uint32 quality)
 {
-    switch (mode)
+    switch (quality)
     {
-        case LEVEL_MODE_ITEM_LEVEL:
-            return proto.ItemLevel;
-        case LEVEL_MODE_REQUIRED_LEVEL:
-            return proto.RequiredLevel;
-        case LEVEL_MODE_REQUIRED_OR_ITEM:
+        case ITEM_QUALITY_POOR:
+        case ITEM_QUALITY_NORMAL:
+        case ITEM_QUALITY_UNCOMMON:
+            return TIER_COMMON;
+        case ITEM_QUALITY_RARE:
+            return TIER_RARE;
+        case ITEM_QUALITY_EPIC:
+            return TIER_EPIC;
         default:
-            return proto.RequiredLevel > 0 ? proto.RequiredLevel : proto.ItemLevel;
+            // Legendary, artifact and heirloom items never drop.
+            return TIER_MAX;
     }
+}
+
+bool RandomLevelLootMgr::IsJunkName(std::string const& name)
+{
+    std::string lower = name;
+    std::transform(lower.begin(), lower.end(), lower.begin(), charToLower);
+
+    // Names of items that exist in the template store but are not meant to reach players.
+    static constexpr std::array<char const*, 9> junkMarkers =
+    {
+        "test", "deprecated", "npc equip", "monster - ", "[ph]", "unused", "(dnd)", "debug", "qa "
+    };
+
+    for (char const* marker : junkMarkers)
+        if (lower.find(marker) != std::string::npos)
+            return true;
+
+    // Test items are frequently named after their stat budget, e.g. "1300 Test Dagger 63 blue".
+    return !lower.empty() && std::isdigit(static_cast<unsigned char>(lower[0]));
+}
+
+bool RandomLevelLootMgr::HasCommonRestrictions(ItemTemplate const& proto)
+{
+    // The level window is keyed on RequiredLevel, items without one cannot be placed.
+    if (!proto.RequiredLevel)
+        return true;
+
+    // No quest rewards, quest starters or items that need a skill, spell, reputation or rank to use.
+    if (proto.Bonding == BIND_QUEST_ITEM || proto.StartQuest)
+        return true;
+
+    if (proto.RequiredSkill || proto.RequiredSpell || proto.RequiredReputationFaction || proto.RequiredHonorRank || proto.RequiredCityRank)
+        return true;
+
+    if (proto.HasFlag(ITEM_FLAG_DEPRECATED))
+        return true;
+
+    return IsJunkName(proto.Name1);
+}
+
+bool RandomLevelLootMgr::IsEligiblePotion(ItemTemplate const& proto)
+{
+    if (!proto.IsPotion())
+        return false;
+
+    // Conjured potions vanish on logout and come from mages, not from loot.
+    if (proto.HasFlag(ITEM_FLAG_CONJURED))
+        return false;
+
+    return !HasCommonRestrictions(proto);
 }
 
 bool RandomLevelLootMgr::IsEligibleItem(ItemTemplate const& proto)
 {
-    // Tuning point: restrict the pool here (quality, class, bonding, blacklists, ...).
-    if (proto.HasFlag(ITEM_FLAG_DEPRECATED))
+    // Only gear the player can put on.
+    if (proto.Class != ITEM_CLASS_WEAPON && proto.Class != ITEM_CLASS_ARMOR)
         return false;
 
-    return true;
+    if (proto.InventoryType == INVTYPE_NON_EQUIP)
+        return false;
+
+    if (proto.Quality < sWorld->getIntConfig(CONFIG_RANDOM_LEVEL_LOOT_MIN_QUALITY))
+        return false;
+
+    if (GetTierForQuality(proto.Quality) == TIER_MAX)
+        return false;
+
+    // No set pieces (tier and dungeon sets) and no top end gear.
+    if (proto.ItemSet)
+        return false;
+
+    uint32 const maxItemLevel = sWorld->getIntConfig(CONFIG_RANDOM_LEVEL_LOOT_MAX_ITEM_LEVEL);
+    if (maxItemLevel && proto.ItemLevel > maxItemLevel)
+        return false;
+
+    return !HasCommonRestrictions(proto);
+}
+
+bool RandomLevelLootMgr::IsUsableByPlayer(ItemTemplate const& proto, Player const* looter)
+{
+    return (proto.AllowableClass & looter->getClassMask()) && (proto.AllowableRace & looter->getRaceMask());
 }
 
 bool RandomLevelLootMgr::IsEligibleCreature(Creature const* creature)
@@ -64,17 +145,29 @@ bool RandomLevelLootMgr::IsEligibleCreature(Creature const* creature)
     if (!creature->GetCreatureTemplate()->lootid)
         return false;
 
-    if (creature->IsCritter() || creature->IsPet() || creature->IsTotem() || creature->IsTrigger())
-        return false;
+    return !creature->IsCritter() && !creature->IsPet() && !creature->IsTotem() && !creature->IsTrigger();
+}
 
-    return true;
+uint8 RandomLevelLootMgr::GetReferenceLevel(Creature const* creature, Player const* looter)
+{
+    // Lowest group member in loot range decides, so a low level player cannot be carried to high level items.
+    uint8 level = looter->GetLevel();
+    if (Group const* group = looter->GetGroup())
+        for (GroupReference const* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            if (Player const* member = itr->GetSource())
+                if (member->IsAtLootRewardDistance(creature))
+                    level = std::min(level, member->GetLevel());
+
+    // The creature's level caps it too, so a high level player cannot farm low level creatures for high level items.
+    return std::min(level, creature->GetLevel());
 }
 
 void RandomLevelLootMgr::LoadItemPool()
 {
     uint32 oldMSTime = getMSTime();
 
-    _itemsByLevel.clear();
+    _pool.clear();
+    _potions.clear();
 
     if (!sWorld->getBoolConfig(CONFIG_RANDOM_LEVEL_LOOT_ENABLE))
     {
@@ -83,80 +176,138 @@ void RandomLevelLootMgr::LoadItemPool()
         return;
     }
 
-    LevelMode const mode = static_cast<LevelMode>(sWorld->getIntConfig(CONFIG_RANDOM_LEVEL_LOOT_LEVEL_MODE));
-
-    uint32 count = 0;
+    std::array<uint32, TIER_MAX> counts = {};
+    uint32 potionCount = 0;
     for (auto const& [itemId, proto] : *sObjectMgr->GetItemTemplateStore())
     {
+        if (IsEligiblePotion(proto))
+        {
+            if (proto.RequiredLevel >= _potions.size())
+                _potions.resize(proto.RequiredLevel + 1);
+
+            _potions[proto.RequiredLevel].push_back(itemId);
+            ++potionCount;
+            continue;
+        }
+
         if (!IsEligibleItem(proto))
             continue;
 
-        uint32 level = GetItemLevelForPool(proto, mode);
-        if (!level)
-            continue;
+        Tier tier = GetTierForQuality(proto.Quality);
+        uint32 level = proto.RequiredLevel;
 
-        if (level >= _itemsByLevel.size())
-            _itemsByLevel.resize(level + 1);
+        if (level >= _pool.size())
+            _pool.resize(level + 1);
 
-        _itemsByLevel[level].push_back(itemId);
-        ++count;
+        _pool[level][tier].push_back(itemId);
+        ++counts[tier];
     }
 
-    LOG_INFO("server.loading", ">> Loaded {} random level loot items across {} levels in {} ms", count, _itemsByLevel.size(), GetMSTimeDiffToNow(oldMSTime));
+    LOG_INFO("server.loading", ">> Loaded {} common, {} rare and {} epic random level loot items across {} levels and {} potions in {} ms",
+        counts[TIER_COMMON], counts[TIER_RARE], counts[TIER_EPIC], _pool.size(), potionCount, GetMSTimeDiffToNow(oldMSTime));
     LOG_INFO("server.loading", " ");
 }
 
-uint32 RandomLevelLootMgr::RollItemId(uint8 playerLevel) const
+RandomLevelLootMgr::Tier RandomLevelLootMgr::RollTier()
 {
-    if (!playerLevel || _itemsByLevel.empty())
+    // Every tier is rolled on its own and the best one that succeeds wins.
+    if (roll_chance_f(sWorld->getFloatConfig(CONFIG_RANDOM_LEVEL_LOOT_CHANCE_EPIC)))
+        return TIER_EPIC;
+
+    if (roll_chance_f(sWorld->getFloatConfig(CONFIG_RANDOM_LEVEL_LOOT_CHANCE_RARE)))
+        return TIER_RARE;
+
+    if (roll_chance_f(sWorld->getFloatConfig(CONFIG_RANDOM_LEVEL_LOOT_CHANCE_COMMON)))
+        return TIER_COMMON;
+
+    return TIER_MAX;
+}
+
+template<typename BucketForLevel>
+uint32 RandomLevelLootMgr::PickFromWindow(Player const* looter, uint8 referenceLevel, uint32 levelsBelow, std::size_t poolSize, BucketForLevel bucketForLevel)
+{
+    if (!looter || !referenceLevel || !poolSize)
         return 0;
 
-    uint32 const levelsBelow = sWorld->getIntConfig(CONFIG_RANDOM_LEVEL_LOOT_LEVELS_BELOW);
-    uint32 const maxLevel = std::min<uint32>(playerLevel, _itemsByLevel.size() - 1);
-    uint32 const minLevel = levelsBelow >= playerLevel ? 1 : playerLevel - levelsBelow;
+    uint32 const maxLevel = std::min<uint32>(referenceLevel, poolSize - 1);
+    uint32 const minLevel = levelsBelow >= referenceLevel ? 1 : referenceLevel - levelsBelow;
 
     if (minLevel > maxLevel)
         return 0;
 
-    // Uniform pick over every item in [minLevel, maxLevel].
-    uint32 total = 0;
-    for (uint32 level = minLevel; level <= maxLevel; ++level)
-        total += _itemsByLevel[level].size();
-
-    if (!total)
-        return 0;
-
-    uint32 index = urand(0, total - 1);
+    // Collect, per level, the items the looter can use. Buckets are small so this is cheap per kill.
+    LevelBuckets candidatesByLevel;
     for (uint32 level = minLevel; level <= maxLevel; ++level)
     {
-        std::vector<uint32> const& bucket = _itemsByLevel[level];
-        if (index < bucket.size())
-            return bucket[index];
+        std::vector<uint32> candidates;
+        for (uint32 itemId : bucketForLevel(level))
+        {
+            ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
+            if (proto && IsUsableByPlayer(*proto, looter))
+                candidates.push_back(itemId);
+        }
 
-        index -= bucket.size();
+        if (!candidates.empty())
+            candidatesByLevel.push_back(std::move(candidates));
     }
 
-    return 0;
+    if (candidatesByLevel.empty())
+        return 0;
+
+    // Pick the level first so every level in the window is equally likely, regardless of how many items it has.
+    std::vector<uint32> const& bucket = candidatesByLevel[urand(0, candidatesByLevel.size() - 1)];
+    return bucket[urand(0, bucket.size() - 1)];
+}
+
+uint32 RandomLevelLootMgr::RollItemId(Player const* looter, uint8 referenceLevel, Tier tier) const
+{
+    if (tier >= TIER_MAX)
+        return 0;
+
+    return PickFromWindow(looter, referenceLevel, sWorld->getIntConfig(CONFIG_RANDOM_LEVEL_LOOT_LEVELS_BELOW), _pool.size(),
+        [this, tier](uint32 level) -> std::vector<uint32> const& { return _pool[level][tier]; });
+}
+
+uint32 RandomLevelLootMgr::RollPotionId(Player const* looter, uint8 referenceLevel) const
+{
+    return PickFromWindow(looter, referenceLevel, sWorld->getIntConfig(CONFIG_RANDOM_LEVEL_LOOT_POTION_LEVELS_BELOW), _potions.size(),
+        [this](uint32 level) -> std::vector<uint32> const& { return _potions[level]; });
 }
 
 void RandomLevelLootMgr::AddRandomItem(Loot& loot, Creature const* creature, Player const* looter) const
 {
-    if (!sWorld->getBoolConfig(CONFIG_RANDOM_LEVEL_LOOT_ENABLE) || !looter)
+    if (!sWorld->getBoolConfig(CONFIG_RANDOM_LEVEL_LOOT_ENABLE))
         return;
 
-    if (!IsEligibleCreature(creature))
+    if (!looter || !IsEligibleCreature(creature))
         return;
 
-    if (!roll_chance_f(sWorld->getFloatConfig(CONFIG_RANDOM_LEVEL_LOOT_CHANCE)))
-        return;
+    uint8 const referenceLevel = GetReferenceLevel(creature, looter);
 
-    uint32 itemId = RollItemId(looter->GetLevel());
-    if (!itemId)
-        return;
+    // Gear: best successful tier wins, at most one item.
+    Tier tier = RollTier();
+    if (tier < TIER_MAX)
+    {
+        if (uint32 itemId = RollItemId(looter, referenceLevel, tier))
+        {
+            LootStoreItem storeItem(itemId, 0, 100.0f, false, LOOT_MODE_DEFAULT, 0, 1, 1);
+            loot.AddItem(storeItem);
 
-    LootStoreItem storeItem(itemId, 0, 100.0f, false, LOOT_MODE_DEFAULT, 0, 1, 1);
-    loot.AddItem(storeItem);
+            LOG_DEBUG("loot", "RandomLevelLoot: added item {} (tier {}) to loot of creature {} for player {} (reference level {})",
+                itemId, uint32(tier), creature->GetEntry(), looter->GetName(), referenceLevel);
+        }
+    }
 
-    LOG_DEBUG("loot", "RandomLevelLoot: added item {} to loot of creature {} for player {} (level {})",
-        itemId, creature->GetEntry(), looter->GetName(), looter->GetLevel());
+    // Potion: independent roll, at most one potion.
+    if (roll_chance_f(sWorld->getFloatConfig(CONFIG_RANDOM_LEVEL_LOOT_POTION_CHANCE)))
+    {
+        if (uint32 potionId = RollPotionId(looter, referenceLevel))
+        {
+            LootStoreItem storeItem(potionId, 0, 100.0f, false, LOOT_MODE_DEFAULT, 0, 1, 1);
+            loot.AddItem(storeItem);
+
+            LOG_DEBUG("loot", "RandomLevelLoot: added potion {} to loot of creature {} for player {} (reference level {})",
+                potionId, creature->GetEntry(), looter->GetName(), referenceLevel);
+        }
+    }
 }

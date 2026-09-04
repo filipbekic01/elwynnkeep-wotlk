@@ -11,10 +11,17 @@
 # RANDOM LEVEL LOOT
 #
 #    RandomLevelLoot.Enable
-#        Description: Every lootable creature kill (excluding critters, pets and totems, and
-#                     creatures without a loot template) adds one extra random item from the
-#                     whole item pool whose level matches the looter's level or is up to
-#                     RandomLevelLoot.LevelsBelow levels lower.
+#        Description: Every lootable creature kill may add one extra piece of equipment (weapon
+#                     or armor) to the loot. The item's RequiredLevel is between the reference
+#                     level and RandomLevelLoot.LevelsBelow levels lower. The reference level is
+#                     the lowest of the creature's level and the lowest group member in loot
+#                     range, so a level 60 killing a level 15 sees level 15 items, a level 60
+#                     killing a level 70 sees level 60 items, and a level 60 and a level 20
+#                     killing a level 60 together see level 20 items. The looter's class and
+#                     race must be allowed to equip the item. Armor type is not
+#                     checked, so a mage may loot plate. Set pieces (tier and dungeon sets),
+#                     legendary, artifact and heirloom items never drop. Critters, pets, totems,
+#                     triggers and creatures without a loot template never drop it.
 #        Default:     1 - (Enabled)
 #                     0 - (Disabled)
 
@@ -22,27 +29,68 @@ RandomLevelLoot.Enable = 1
 
 #
 #    RandomLevelLoot.LevelsBelow
-#        Description: How many levels below the looter's level an item may be and still drop.
+#        Description: How many levels below the reference level an item may be and still drop.
+#                     Every level in the window is equally likely.
 #        Default:     5
 
 RandomLevelLoot.LevelsBelow = 5
 
 #
-#    RandomLevelLoot.LevelMode
-#        Description: Which item field is compared against the looter's level.
+#    RandomLevelLoot.MinQuality
+#        Description: Lowest item quality that may drop. Legendary and better never drop.
 #        Note:        Changing this value rebuilds the item pool on ".reload config".
-#        Default:     0 - (RequiredLevel when set, otherwise ItemLevel)
-#                     1 - (ItemLevel only)
-#                     2 - (RequiredLevel only, items without a required level never drop)
+#        Default:     0 - (Poor, grey)
+#                     1 - (Normal, white)
+#                     2 - (Uncommon, green)
+#                     3 - (Rare, blue)
+#                     4 - (Epic, purple)
 
-RandomLevelLoot.LevelMode = 0
+RandomLevelLoot.MinQuality = 0
 
 #
-#    RandomLevelLoot.Chance
-#        Description: Chance in percent that the extra item is added to the loot.
-#        Default:     100
+#    RandomLevelLoot.MaxItemLevel
+#        Description: Items above this item level never drop, which keeps the top end raid gear
+#                     out of the pool. At level 80: 200-226 is Naxxramas and Ulduar, 232 is heroic
+#                     dungeon and Trial of the Crusader 10, 245 and above is Trial of the Crusader 25
+#                     and Icecrown Citadel.
+#        Note:        Changing this value rebuilds the item pool on ".reload config".
+#        Default:     232
+#                     0 - (No limit)
 
-RandomLevelLoot.Chance = 100
+RandomLevelLoot.MaxItemLevel = 232
+
+#
+#    RandomLevelLoot.Chance.Common
+#    RandomLevelLoot.Chance.Rare
+#    RandomLevelLoot.Chance.Epic
+#        Description: Chance in percent, per kill, that an item of the given quality tier drops.
+#                     Common covers poor, normal and uncommon quality. Each tier is rolled on its
+#                     own and the best tier that succeeds wins, so at most one item is added.
+#        Default:     25 - (Common)
+#                     10 - (Rare)
+#                     3  - (Epic)
+
+RandomLevelLoot.Chance.Common = 25
+RandomLevelLoot.Chance.Rare = 10
+RandomLevelLoot.Chance.Epic = 3
+
+#
+#    RandomLevelLoot.Potion.Chance
+#        Description: Chance in percent, per kill, that one potion drops on top of the gear roll.
+#                     Rolled independently of the gear tiers. Only real potions (no elixirs,
+#                     flasks or conjured items) with a RequiredLevel in the window drop.
+#        Default:     25
+#                     0 - (Disabled)
+
+RandomLevelLoot.Potion.Chance = 25
+
+#
+#    RandomLevelLoot.Potion.LevelsBelow
+#        Description: How many levels below the reference level a potion may be and still drop.
+#                     Wider than the gear window because only one or two potions exist per level.
+#        Default:     10
+
+RandomLevelLoot.Potion.LevelsBelow = 10
 
 #
 ###################################################################################################

@@ -297,7 +297,7 @@ void World::LoadConfigSettings(bool reload)
     VMAP::VMapFactory::createOrGetVMapMgr()->setEnableHeightCalc(enableHeight);
     LOG_INFO("server.loading", "WORLD: VMap support included. LineOfSight:{}, getHeight:{}, indoorCheck:{} PetLOS:{}", enableLOS, enableHeight, enableIndoor, enablePetLOS);
 
-    // Custom: the random level loot pool depends on RandomLevelLoot.* values, rebuild it on reload
+    // Custom: the random level loot pool depends on RandomLevelLoot.Enable, MinQuality and MaxItemLevel, rebuild it on reload
     if (reload)
         sRandomLevelLootMgr->LoadItemPool();
 
