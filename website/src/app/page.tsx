@@ -2,6 +2,7 @@ import Link from "next/link";
 import Changelog, { getCommits, COMMITS_URL } from "@/components/Changelog";
 import { timeAgo } from "@/lib/wow";
 import RealmStatus from "@/components/RealmStatus";
+import CustomChanges from "@/components/CustomChanges";
 import { getSession } from "@/lib/session";
 
 export default async function Home() {
@@ -36,35 +37,7 @@ export default async function Home() {
 
       <div className="site content-grid pb-8">
         <div className="min-w-0 space-y-6">
-          <section className="panel">
-            <div className="panel-title">Welcome to the server</div>
-            <p>
-              Elwynnkeep was born out of frustration with pay-to-win realms and commercial private servers. All I
-              ever wanted was a place to log in after work and relive the nostalgia of the 3.3.5a era, and
-              for years I kept looking for it. As a senior engineer with a strong technical background, I decided to
-              take what the community has already done so well, AzerothCore, and run it the way production systems
-              should be run: automated, regularly tested
-              backups, up-to-date software, monitoring, and a stable, well-maintained realm. Your characters and
-              progress are safe here.
-            </p>
-            <p className="mt-3">
-              The server runs on the latest AzerothCore build with no custom content. Everything is kept as
-              true to the original 3.3.5a experience as possible, with nothing custom added. It is synced
-              with upstream AzerothCore roughly every week, so every fix and improvement merged into the open-source
-              repository reaches the realm shortly after.
-            </p>
-            <p className="mt-3">
-              All server costs are covered out of my own pocket. There is no shop and there never will be; this is
-              purely for the fun of it and for that home-like feeling. We all contribute, and we all play that code.
-              It is free for anyone to play and free for anyone to contribute.
-            </p>
-            <p className="mt-3">
-              Whether the population is low or high, Elwynnkeep will always be a safe place to log in and simply
-              enjoy the game. This is not a competitive server. It exists purely for the nostalgia and for that
-              feeling of being home.
-            </p>
-            <p className="mt-3 font-bold" style={{ color: "var(--gold)" }}>Welcome home, my friend.</p>
-          </section>
+          <CustomChanges />
 
           <Changelog />
 
