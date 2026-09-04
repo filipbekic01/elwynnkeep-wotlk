@@ -79,10 +79,10 @@ RandomLevelLoot.Chance.Epic = 2
 #        Description: Chance in percent, per kill, that one potion drops on top of the gear roll.
 #                     Rolled independently of the gear tiers. Only real potions (no elixirs,
 #                     flasks or conjured items) with a RequiredLevel in the window drop.
-#        Default:     25
+#        Default:     20
 #                     0 - (Disabled)
 
-RandomLevelLoot.Potion.Chance = 25
+RandomLevelLoot.Potion.Chance = 20
 
 #
 #    RandomLevelLoot.Potion.LevelsBelow

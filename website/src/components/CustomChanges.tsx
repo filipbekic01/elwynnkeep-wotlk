@@ -23,7 +23,7 @@ const ENTRIES: Entry[] = [
             rolls on its own and the best result wins, so at most one piece of gear drops per kill.
           </li>
           <li>
-            A separate <span className="font-bold">25%</span> chance drops a potion suited to your level, from
+            A separate <span className="font-bold">20%</span> chance drops a potion suited to your level, from
             healing and mana potions to the protection and utility ones you would otherwise never see.
           </li>
           <li>

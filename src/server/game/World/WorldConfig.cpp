@@ -371,7 +371,7 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_CHANCE_COMMON, "RandomLevelLoot.Chance.Common", 15.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
     SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_CHANCE_RARE, "RandomLevelLoot.Chance.Rare", 7.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
     SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_CHANCE_EPIC, "RandomLevelLoot.Chance.Epic", 2.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
-    SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_POTION_CHANCE, "RandomLevelLoot.Potion.Chance", 25.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
+    SetConfigValue<float>(CONFIG_RANDOM_LEVEL_LOOT_POTION_CHANCE, "RandomLevelLoot.Potion.Chance", 20.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f && value <= 100.0f; }, "0-100");
     SetConfigValue<uint32>(CONFIG_RANDOM_LEVEL_LOOT_POTION_LEVELS_BELOW, "RandomLevelLoot.Potion.LevelsBelow", 10);
 
     SetConfigValue<uint32>(CONFIG_EVENT_ANNOUNCE, "Event.Announce", 0);
