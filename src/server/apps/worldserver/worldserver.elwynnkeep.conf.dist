@@ -66,13 +66,13 @@ RandomLevelLoot.MaxItemLevel = 232
 #        Description: Chance in percent, per kill, that an item of the given quality tier drops.
 #                     Common covers poor, normal and uncommon quality. Each tier is rolled on its
 #                     own and the best tier that succeeds wins, so at most one item is added.
-#        Default:     25 - (Common)
-#                     10 - (Rare)
-#                     3  - (Epic)
+#        Default:     15 - (Common)
+#                     7  - (Rare)
+#                     2  - (Epic)
 
-RandomLevelLoot.Chance.Common = 25
-RandomLevelLoot.Chance.Rare = 10
-RandomLevelLoot.Chance.Epic = 3
+RandomLevelLoot.Chance.Common = 15
+RandomLevelLoot.Chance.Rare = 7
+RandomLevelLoot.Chance.Epic = 2
 
 #
 #    RandomLevelLoot.Potion.Chance
