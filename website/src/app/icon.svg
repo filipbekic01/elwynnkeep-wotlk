@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a3a1c"/>
+      <stop offset="1" stop-color="#1a140c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe680"/>
+      <stop offset="0.5" stop-color="#ffd100"/>
+      <stop offset="1" stop-color="#c8a84a"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="10" fill="url(#bg)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="8.5" fill="none" stroke="#5a4a2a" stroke-width="3"/>
+  <rect x="4" y="4" width="56" height="56" rx="6" fill="none" stroke="#a88a3c" stroke-width="1.5"/>
+  <text x="32" y="47" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="bold" font-size="42" fill="url(#gold)" stroke="#2a2010" stroke-width="1">E</text>
+</svg>
